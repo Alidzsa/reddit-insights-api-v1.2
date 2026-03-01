@@ -1,4 +1,14 @@
-# Real-Time Reddit Community Insights API (MVP v1.0)
+---
+title: Real-Time Reddit Community Insights API
+emoji: 📊
+colorFrom: red
+colorTo: orange
+sdk: docker
+pinned: false
+app_port: 7860
+---
+
+# Real-Time Reddit Community Insights API (MVP v1.2)
 
 A high-performance, 100% free-stack API designed to bypass Reddit's official API restrictions using advanced web scraping, stealth automation, and proxy rotation.
 
