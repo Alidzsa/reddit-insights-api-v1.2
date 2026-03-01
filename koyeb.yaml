@@ -1,0 +1,24 @@
+name: reddit-insights-api-v1-2
+services:
+  - name: api
+    type: web
+    image: 
+      dockerfile: Dockerfile
+    ports:
+      - port: 8000
+        protocol: http
+    env:
+      - key: REDIS_URL
+        value: redis://redis:6379
+      - key: DEBUG
+        value: "False"
+      - key: API_KEY
+        value: "free-beta-key-2026"
+    dependencies:
+      - name: redis
+  - name: redis
+    type: worker
+    image: redis:alpine
+    ports:
+      - port: 6379
+        protocol: tcp
