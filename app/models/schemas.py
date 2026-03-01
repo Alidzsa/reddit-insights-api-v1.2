@@ -29,13 +29,16 @@ class RedditComment(BaseModel):
     score: int
     created_utc: float
     depth: int
+    sentiment: Optional[float] = None
     replies: List['RedditComment'] = []
 
 class UserProfile(BaseModel):
     username: str
-    karma: int
-    created_utc: float
-    recent_activity: List[Any]
+    karma: Optional[int] = 0
+    created_utc: Optional[float] = 0.0
+    is_employee: Optional[bool] = False
+    is_gold: Optional[bool] = False
+    recent_activity: List[Any] = []
 
 class SearchRequest(BaseModel):
     query: str

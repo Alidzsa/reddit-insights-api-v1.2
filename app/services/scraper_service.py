@@ -188,6 +188,70 @@ class ScraperService:
 
         return []
 
+    async def scrape_post_comments(self, post_id: str, limit: int = 50) -> List[RedditComment]:
+        """Fetch comments for a specific post with sentiment support."""
+        # Sanitize post_id (remove t3_ prefix if present)
+        clean_id = post_id.replace("t3_", "")
+        url = f"{self.base_url}/comments/{clean_id}.json?limit={limit}"
+        
+        try:
+            async with httpx.AsyncClient(headers={"User-Agent": random.choice(self.user_agents)}) as client:
+                response = await client.get(url, timeout=15.0)
+                if response.status_code == 200:
+                    data = response.json()
+                    # Reddit returns a list where the second element is the comment tree
+                    comment_data = data[1].get("data", {}).get("children", [])
+                    comments = []
+                    for child in comment_data:
+                        if child.get("kind") == "t1": # t1 is comment
+                            comments.append(self._parse_comment(child.get("data", {})))
+                    return comments
+        except Exception as e:
+            print(f"Comment fetch failed: {e}")
+            
+        return []
+
+    async def scrape_user_profile(self, username: str) -> Optional[UserProfile]:
+        """Fetch basic user profile intelligence."""
+        url = f"{self.base_url}/user/{username}/about.json"
+        
+        try:
+            async with httpx.AsyncClient(headers={"User-Agent": random.choice(self.user_agents)}) as client:
+                response = await client.get(url, timeout=15.0)
+                if response.status_code == 200:
+                    data = response.json().get("data", {})
+                    return UserProfile(
+                        username=data.get("name", username),
+                        karma=data.get("total_karma", 0),
+                        created_utc=float(data.get("created_utc", 0)),
+                        is_employee=data.get("is_employee", False),
+                        is_gold=data.get("is_gold", False)
+                    )
+        except Exception as e:
+            print(f"User profile fetch failed: {e}")
+            
+        return None
+
+    def _parse_comment(self, data: dict, depth: int = 0) -> RedditComment:
+        """Recursive parser for comment trees."""
+        replies = []
+        raw_replies = data.get("replies")
+        if isinstance(raw_replies, dict):
+            replies_data = raw_replies.get("data", {}).get("children", [])
+            for r in replies_data:
+                if r.get("kind") == "t1":
+                    replies.append(self._parse_comment(r.get("data", {}), depth + 1))
+
+        return RedditComment(
+            id=data.get("id"),
+            author=data.get("author", "unknown"),
+            body=data.get("body", ""),
+            score=data.get("score", 0),
+            created_utc=float(data.get("created_utc", 0)),
+            depth=depth,
+            replies=replies
+        )
+
     def _parse_post(self, thing, subreddit) -> RedditPost:
         try:
             post_id = thing.get("data-fullname", "")

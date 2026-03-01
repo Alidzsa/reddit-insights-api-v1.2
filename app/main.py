@@ -10,7 +10,7 @@ from typing import List, Optional
 from app.services.scraper_service import scraper_service
 from app.services.insight_service import insight_service
 from app.services.proxy_rotator import proxy_rotator
-from app.models.schemas import SubredditInsights, RedditPost, SearchRequest
+from app.models.schemas import SubredditInsights, RedditPost, SearchRequest, RedditComment, UserProfile
 from app.core.security import get_api_key
 from app.core.stats_manager import stats_manager
 from datetime import datetime
@@ -134,6 +134,54 @@ async def get_hot_posts(
     try:
         posts = await scraper_service.scrape_subreddit(name, "hot", limit)
         return insight_service.calculate_trend_velocity(posts)
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/post/{post_id}/comments", response_model=List[RedditComment])
+@limiter.limit("20/minute")
+async def get_post_comments(
+    request: Request,
+    post_id: str,
+    limit: int = 50,
+    api_key: str = Depends(get_api_key)
+):
+    """
+    Fetch comments for a specific post with built-in sentiment analysis.
+    """
+    try:
+        comments = await scraper_service.scrape_post_comments(post_id, limit)
+        
+        # Enrich comments with sentiment (Recursive)
+        def enrich_sentiment(comment_list):
+            for comment in comment_list:
+                comment.sentiment = insight_service.analyze_sentiment(comment.body)
+                if comment.replies:
+                    enrich_sentiment(comment.replies)
+        
+        enrich_sentiment(comments)
+        return comments
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/user/{username}", response_model=UserProfile)
+@limiter.limit("15/minute")
+async def get_user_profile(
+    request: Request,
+    username: str,
+    api_key: str = Depends(get_api_key)
+):
+    """
+    Fetch Reddit user profile intelligence.
+    """
+    try:
+        profile = await scraper_service.scrape_user_profile(username)
+        if not profile:
+            raise HTTPException(status_code=404, detail="User not found")
+        return profile
+    except HTTPException:
+        raise
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
