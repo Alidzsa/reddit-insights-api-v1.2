@@ -1,4 +1,7 @@
+```python
 from fastapi import FastAPI, HTTPException, Query, Depends, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -13,11 +16,29 @@ from datetime import datetime
 import os
 import traceback
 
-# Rate Limiter Setup
-limiter = Limiter(key_func=get_remote_address)
+# Initialize FastAPI app
 app = FastAPI(title="Real-Time Reddit Community Insights API")
+
+# Initialize stats and limiter
+limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Production Hardening: CORS & Trusted Hosts
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+allowed_hosts = os.getenv("TRUSTED_HOSTS", "localhost,127.0.0.1,0.0.0.0").split(",")
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=allowed_hosts
+)
 
 @app.get("/")
 async def root():
