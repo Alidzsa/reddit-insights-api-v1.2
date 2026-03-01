@@ -1,6 +1,7 @@
 import httpx
 import random
 import asyncio
+import re
 from typing import List, Optional
 
 class ProxyRotator:
