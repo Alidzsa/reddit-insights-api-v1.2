@@ -33,7 +33,6 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Install Playwright browsers (in the user's home)
 RUN python -m playwright install chromium
-RUN python -m playwright install-deps chromium
 
 COPY --chown=user . .
 
