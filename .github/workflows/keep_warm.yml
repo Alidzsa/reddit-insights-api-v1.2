@@ -1,0 +1,20 @@
+name: Keep API Warm
+
+on:
+  schedule:
+    - cron: '*/30 * * * *' # Ping every 30 minutes
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Health Endpoint
+        run: |
+          status_code=$(curl -s -o /dev/null -w "%{http_code}" https://pedrothesixth-reddit-insights-api.hf.space/health)
+          echo "Pinged /health endpoint. Status code: $status_code"
+          if [ "$status_code" -ne 200 ]; then
+            echo "API might be sleeping or down. Retrying..."
+            sleep 5
+            curl -s https://pedrothesixth-reddit-insights-api.hf.space/health
+          fi
