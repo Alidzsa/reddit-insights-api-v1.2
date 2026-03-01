@@ -9,6 +9,9 @@ from app.core.stats_manager import stats_manager
 from app.models.schemas import RedditPost
 from datetime import datetime
 import random
+import re
+from typing import List, Optional
+from app.services.proxy_rotator import proxy_rotator
 
 class ScraperService:
     """
