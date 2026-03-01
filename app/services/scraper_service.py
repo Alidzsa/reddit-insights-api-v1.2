@@ -6,7 +6,7 @@ from playwright.async_api import async_playwright
 from app.core.stealth_browser import stealth_browser
 from app.core.cache_manager import cache_manager
 from app.core.stats_manager import stats_manager
-from app.models.schemas import RedditPost
+from app.models.schemas import RedditPost, RedditComment, UserProfile
 from datetime import datetime
 import random
 import re
