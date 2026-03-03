@@ -35,11 +35,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-allowed_hosts = os.getenv("TRUSTED_HOSTS", "localhost,127.0.0.1,0.0.0.0,*.hf.space").split(",")
-app.add_middleware(
-    TrustedHostMiddleware,
     allowed_hosts=allowed_hosts
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """
+    Launch background tasks on startup.
+    """
+    asyncio.create_task(proxy_rotator.start_checker())
 
 @app.get("/")
 async def root():
