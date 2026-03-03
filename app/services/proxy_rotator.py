@@ -17,7 +17,8 @@ class ProxyRotator:
             "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt",
             "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
             "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt",
-            "https://raw.githubusercontent.com/hookzof/socks5_list/master/proxy.txt"
+            "https://raw.githubusercontent.com/hookzof/socks5_list/master/proxy.txt",
+            "https://raw.githubusercontent.com/jetkai/proxy-list/main/archive/http.txt"
         ]
         self.last_refresh = 0
 
@@ -47,7 +48,7 @@ class ProxyRotator:
         """Test if a proxy can reach Reddit."""
         try:
             async with httpx.AsyncClient(proxies=f"http://{proxy}", timeout=5.0) as client:
-                response = await client.get("https://old.reddit.com/static/pixel.png")
+                response = await client.get("https://www.reddit.com/static/pixel.png")
                 return response.status_code == 200
         except Exception:
             return False

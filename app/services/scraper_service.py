@@ -18,7 +18,7 @@ class ScraperService:
     Service to scrape Reddit data using old.reddit.com for light parsing.
     """
     def __init__(self):
-        self.base_url = "https://old.reddit.com"
+        self.base_url = "https://www.reddit.com"
         self.user_agents = [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
@@ -109,7 +109,13 @@ class ScraperService:
                     soup = BeautifulSoup(content, 'lxml')
                     
                     posts = []
-                    things = soup.select(".thing")
+                    # Standard Reddit (Shreddit) uses <shreddit-post>
+                    things = soup.select("shreddit-post")
+                    
+                    if not things:
+                        # Fallback for search or older redesign blocks
+                        things = soup.select(".thing")
+                        
                     for thing in things[:limit]:
                         data = self._parse_post(thing, subreddit)
                         if data:
@@ -118,7 +124,9 @@ class ScraperService:
                     await context.browser.close()
                     
                     if not posts:
-                        stats_manager.record_event("browser", False, {"error_type": "reddit_blocks", "detail": "No posts found"})
+                        # Log snippet of body for debugging
+                        body_preview = content[:500]
+                        stats_manager.record_event("browser", False, {"error_type": "reddit_blocks", "detail": f"No posts found. Body: {body_preview}"})
                         raise Exception("No posts found (possibly blocked/empty page).")
 
                     # Cache the result for 5 minutes
@@ -254,6 +262,36 @@ class ScraperService:
 
     def _parse_post(self, thing, subreddit) -> RedditPost:
         try:
+            # 1. Shreddit Parser (Modern Reddit)
+            if thing.name == "shreddit-post":
+                post_id = thing.get("id", "")
+                title = thing.get("post-title", "No Title")
+                author = thing.get("author", "unknown")
+                score = int(thing.get("score", 0))
+                # created-timestamp is usually isoformat or utc seconds
+                created_raw = thing.get("created-timestamp", "0")
+                try:
+                    created_utc = float(created_raw)
+                except:
+                    # If it's ISO, we might need a parser, but usually it's a float in these attributes
+                    created_utc = 0
+                
+                num_comments = int(thing.get("comment-count", 0))
+                permalink = thing.get("content-href", "")
+                url = self.base_url + permalink if permalink.startswith("/") else permalink
+                
+                return RedditPost(
+                    id=post_id,
+                    title=title,
+                    author=author,
+                    score=score,
+                    created_utc=created_utc,
+                    url=url,
+                    num_comments=num_comments,
+                    subreddit=subreddit
+                )
+
+            # 2. Legacy Parser (Old Reddit / Fallback)
             post_id = thing.get("data-fullname", "")
             title_node = thing.select_one("a.title")
             title = title_node.text if title_node else "No Title"
