@@ -35,6 +35,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+allowed_hosts = os.getenv("TRUSTED_HOSTS", "localhost,127.0.0.1,0.0.0.0,*.hf.space").split(",")
+app.add_middleware(
+    TrustedHostMiddleware,
     allowed_hosts=allowed_hosts
 )
 
